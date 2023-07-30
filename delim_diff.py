@@ -5,10 +5,12 @@ This program diffs delimtied files on a composite key
 import os
 import sys
 import csv
+import io
+import json
 from helpers import load_file_as_string
 from helpers import infer_delimiter
 from helpers import inject_composite_key
-from comparison import do_comparison
+from comparison import make_comparison
 
 def main(file_a:str, file_b:str, delimiter=None, composite_key_fields=None):
     """
@@ -97,8 +99,11 @@ def main(file_a:str, file_b:str, delimiter=None, composite_key_fields=None):
     """
     Load the files as dictionaries
     """
-    file_a_dict_reader = csv.DictReader(file_a_str.split('\n'), delimiter=delimiter)
-    file_b_dict_reader = csv.DictReader(file_b_str.split('\n'), delimiter=delimiter)
+    # file_a_dict_reader = csv.DictReader(file_a_str.split('\n'), delimiter=delimiter)
+    # file_b_dict_reader = csv.DictReader(file_b_str.split('\n'), delimiter=delimiter)
+    file_a_dict_reader = csv.DictReader(io.StringIO(file_a_str), delimiter=delimiter)
+    file_b_dict_reader = csv.DictReader(io.StringIO(file_b_str), delimiter=delimiter)
+
     file_a_records = list(file_a_dict_reader)
     file_b_records = list(file_b_dict_reader)
 
@@ -111,13 +116,47 @@ def main(file_a:str, file_b:str, delimiter=None, composite_key_fields=None):
     """
     Do the comparison!!
     """
-    do_comparison(file_a_records, file_b_records) # Compare A to B
+    print("Starting comparison...")
+    all_comparison_results = make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records, verbose=False) # Compare A to B
+    comparison_results = all_comparison_results['diffs']
+    """
+    Report statistics about the diffs
+    """
+    total_lines_with_diffs = len(comparison_results)
+    field_level_diffs_running_total = 0
+    present_in_a_not_in_b_running_total = 0
+    present_in_b_not_in_a_running_total = 0
 
-    print("!")
+    for k in comparison_results.keys():
 
+        result = comparison_results[k]
 
+        # Count Field Level Diffs
+        field_level_diffs = result.get('_field_differences_count')
+        if field_level_diffs:
+            field_level_diffs_running_total += field_level_diffs
 
+        # Count Present in A not in B diffs
+        present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
+        if present_in_a_not_in_b:
+            present_in_a_not_in_b_running_total += 1
 
+        # Count Present in B not in A diffs
+        present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
+        if present_in_b_not_in_a:
+            present_in_b_not_in_a_running_total += 1
+
+    print("\n[Details]:")
+    print(json.dumps(comparison_results, indent=4))
+
+    print("\n\n[Summary]:")
+    print(f"Lines in File A: {len(file_a_records)}")
+    print(f"Lines in File B: {len(file_b_records)}")
+    print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
+    print(f"Total lines with diffs: {total_lines_with_diffs}")
+    print(f"Total field level diffs: {field_level_diffs_running_total}")
+    print(f"Total rows present in A but not in B: {present_in_a_not_in_b_running_total}")
+    print(f"Total rows present in B but not in A: {present_in_b_not_in_a_running_total}")
 
 
 

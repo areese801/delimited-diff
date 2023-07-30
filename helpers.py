@@ -49,7 +49,7 @@ def infer_delimiter(input_string:str) -> str:
         ret_val = best_guess_delimiter
         return ret_val
 
-def inject_composite_key(data_object, composite_keys):
+def inject_composite_key(data_object, composite_keys, verbose=False):
     """
     Concatenates and hashes the composite keys found in some dictionary to create a key
     This key is written into the dictionary
@@ -93,7 +93,8 @@ def inject_composite_key(data_object, composite_keys):
         sha256_hash.update(composite_key_string.encode('utf-8'))
         composite_key_hash = sha256_hash.hexdigest()
 
-        print(f"Calculated composite key hash [{composite_key_hash}] for composite key string [{composite_key_string}]")
+        if verbose is True:
+            print(f"Calculated composite key hash [{composite_key_hash}] for composite key string [{composite_key_string}]")
 
         # Inject the composite key hash into the dictionary
         for new_keys in ['_composite_key_hash', '_composite_key_string']:
