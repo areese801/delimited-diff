@@ -1,15 +1,38 @@
 """
 This module contains the primary comparison algorithm
 """
+import sys
 
 from Levenshtein import distance as levenshtein_distance
 
-def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
-    # TODO:  Docstring
+def _find_record_by_composite_key(list_of_dicts:list, composite_key:str) -> dict:
+    """
+    Searches a list of dicts for a record with a specific composite key
+    :param list_of_dicts: List of dictionaries to search
+    :param composite_key: The sought composite key
+    :return:
+    """
+    ret_val = None
+
+    for _dict in list_of_dicts:
+        if _dict['_composite_key_hash'] == composite_key:
+            ret_val  = _dict
+
+    if ret_val is None:
+        raise ValueError(f"Failed to locate record with composite key [{composite_key}]")
+
+    return ret_val
+
+def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=False) -> dict:
+    """
+    The primary comparison algorithm
+    :param list_of_dicts_a: The first delimited file, represented as a list of dicts
+    :param list_of_dicts_b: The second delimited file, represented as a list of dicts
+    :param verbose: Set to true to print more information
+    :return: dict
+    """
 
     #TODO:  Add handling for unimportant fields
-
-    # raise NotImplementedError("This function is not yet implemented!") # TODO:  Drop this line
 
     """
     Validate inputs
@@ -40,6 +63,13 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
             composite_key = _dict['_composite_key_hash']
             if composite_key not in all_composite_keys:
                 all_composite_keys.append(composite_key)
+
+    # If the list of composite keys is shorter than both of the list of dicts, the composite key is not actually unique
+    if len(all_composite_keys) < len(list_of_dicts_a) and len(all_composite_keys) < len(list_of_dicts_b):
+        raise ValueError(f"There are {len(all_composite_keys)} unique composite keys between both files but there "
+                         f"are {len(list_of_dicts_a)} records in File A and {len(list_of_dicts_b)} records in File B.  "
+                         f"This means that composite key is not reliable to infer uniqueness.  "
+                         f"Please specify more fields and invoke the program again")
 
     # Diff time!
     matched_composite_keys = []
@@ -88,20 +118,31 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
         if composite_key_exists_in_a is True and composite_key_exists_in_b is True:
 
             # Locate record from data set A
-            record_a = None
-            for _dict in list_of_dicts_a:
-                if _dict['_composite_key_hash'] == _composite_key:
-                    record_a = _dict
-                    record_a_composite_key = record_a['_composite_key_hash']
-                    record_a_composite_key_string = record_a['_composite_key_string']
+
+            # TODO:  Drop this block.  Replaced by function below it
+            # record_a = None
+            # for _dict in list_of_dicts_a:
+            #     if _dict['_composite_key_hash'] == _composite_key:
+            #         record_a = _dict
+            #         record_a_composite_key = record_a['_composite_key_hash']
+            #         record_a_composite_key_string = record_a['_composite_key_string']
+
+            record_a = _find_record_by_composite_key(list_of_dicts=list_of_dicts_a, composite_key=_composite_key)
+            record_a_composite_key = record_a['_composite_key_hash']
+            record_a_composite_key_string = record_a['_composite_key_string']
 
             # Locate record from data set B
-            record_b = None
-            for _dict in list_of_dicts_b:
-                if _dict['_composite_key_hash'] == _composite_key:
-                    record_b = _dict
-                    record_b_composite_key = record_a['_composite_key_hash']
-                    record_b_composite_key_string = record_a['_composite_key_string']
+            # TODO:  Drop this block.  Replaced by function below it
+            # record_b = None
+            # for _dict in list_of_dicts_b:
+            #     if _dict['_composite_key_hash'] == _composite_key:
+            #         record_b = _dict
+            #         record_b_composite_key = record_a['_composite_key_hash']
+            #         record_b_composite_key_string = record_a['_composite_key_string']
+
+            record_b = _find_record_by_composite_key(list_of_dicts=list_of_dicts_b, composite_key=_composite_key)
+            record_b_composite_key = record_b['_composite_key_hash']
+            record_b_composite_key_string = record_b['_composite_key_string']
 
             # Validate that we found the records
             if record_a is None or record_b is None:
@@ -119,6 +160,13 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
             row_key_exists_in_a = False
             row_key_exists_in_b = False
             for k in all_dict_keys:
+
+                # We don't need to handle the metadata keys inserted by this program
+                if k in ['_composite_key_hash', '_composite_key_string', '_row_number']:
+                    continue
+
+                # TODO:  Put handling here for unimportant fields.  Or maybe somewhere above??
+
                 if k in record_a.keys():
                     row_key_exists_in_a = True
                 if k in record_b.keys():
@@ -131,7 +179,9 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
 
                     if record_a_value != record_b_value:
                         if verbose is True:
-                            print(f"Composite key [{_composite_key}] has a mismatched field [{k}].  Value in A=[{record_a[k]}] Value in B=[{record_b[k]}]")
+                            print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a mismatched field [{k}]."
+                                  f"\n\tValue in A = [{record_a[k]}] (row number {record_a['_row_number']})"
+                                  f"\n\tValue in B = [{record_b[k]}] (row number {record_b['_row_number']})")
 
                         if _composite_key not in diffs.keys():
                             diffs[_composite_key] = {}
@@ -148,11 +198,14 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
 
                     else:
                         if verbose is True:
-                            print(f"Composite key [{_composite_key}] has a matched field [{k}].  Value in A=[{record_a[k]}] Value in B=[{record_b[k]}]")
+                            print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a matched field [{k}]."
+                                  f"\n\tValue in A = [{record_a[k]}] (row number {record_a['_row_number']})"
+                                  f"\n\tValue in B = [{record_b[k]}] (row number {record_b['_row_number']})")
+
                 elif row_key_exists_in_a is True and row_key_exists_in_b is False:
                     # The key exists in record_a but not in record_b
                     if verbose is True:
-                        print(f"Composite key [{_composite_key}] has a field [{k}] that exists in A but not in B.  Value in A=[{record_a[k]}]")
+                        print(f"Composite key [{record_a['_composite_key_string']}: {_composite_key}] has a field [{k}] that exists in A but not in B.  Value in A=[{record_a[k]}]")
 
                     if _composite_key not in diffs.keys():
                         diffs[_composite_key] = {}
@@ -166,7 +219,7 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
                 elif row_key_exists_in_b is True and row_key_exists_in_a is False:
                     # The key exists in record_b but not in record_a
                     if verbose is True:
-                        print(f"Composite key [{_composite_key}] has a field [{k}] that exists in B but not in A.  Value in B=[{record_b[k]}]")
+                        print(f"Composite key [{record_b['_composite_key_string']}: {_composite_key}] has a field [{k}] that exists in B but not in A.  Value in B=[{record_b[k]}]")
 
                     if _composite_key not in diffs.keys():
                         diffs[_composite_key] = {}
@@ -183,8 +236,10 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
                                      f"row_key_exists_in_b=[{row_key_exists_in_b}]")
         elif composite_key_exists_in_a is True and composite_key_exists_in_b is False:
             # The key exists in record_a but not in record_b
+            record_a = _find_record_by_composite_key(list_of_dicts=list_of_dicts_a, composite_key=_composite_key)
+
             if verbose is True:
-                print(f"Composite key [{_composite_key}] exists in A but not in B.")
+                print(f"Composite key [{record_a['_composite_key_string']}: {_composite_key}] exists in A (row number {record_a['_row_number']}) but not in B.")
 
             if _composite_key not in diffs.keys():
                 diffs[_composite_key] = {}
@@ -193,11 +248,14 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
             for k in record_a.keys():
                 diffs[_composite_key][f"{k}_A"] = record_a[k]
                 diffs[_composite_key][f"{k}_B"] = None
-                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_a[k])
+                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_a[k]))
         elif composite_key_exists_in_a is False and composite_key_exists_in_b is True:
             # The key exists in record_b but not in record_a
+            record_b = _find_record_by_composite_key(list_of_dicts=list_of_dicts_b, composite_key=_composite_key)
+
             if verbose is True:
-                print(f"Composite key [{_composite_key}] exists in B but not in A.")
+                print(f"Composite key [{record_b['_composite_key_string']}: {_composite_key}] exists in B (row number {record_b['_row_number']}) but not in A.")
+
 
             if _composite_key not in diffs.keys():
                 diffs[_composite_key] = {}
@@ -206,7 +264,7 @@ def make_comparison(list_of_dicts_a, list_of_dicts_b, verbose=False):
             for k in record_b.keys():
                 diffs[_composite_key][f"{k}_A"] = None
                 diffs[_composite_key][f"{k}_B"] = record_b[k]
-                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_b[k])
+                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_b[k]))
         else:
             # We should never get here
             raise ValueError(f"Unexpected state!  composite_key_exists_in_a=[{composite_key_exists_in_a}] "

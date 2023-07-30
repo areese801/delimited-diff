@@ -45,13 +45,13 @@ def infer_delimiter(input_string:str) -> str:
     if not best_guess_delimiter:
         raise ValueError("Failed to infer delimiter!")
     else:
-        print(f"The inferred delimiter is [{best_guess_delimiter}].  It resulted in a split of {max_len} fields.")
+        # print(f"The inferred delimiter is [{repr(best_guess_delimiter)}].  It resulted in a split of {max_len} fields.")
         ret_val = best_guess_delimiter
         return ret_val
 
 def inject_composite_key(data_object, composite_keys, verbose=False):
     """
-    Concatenates and hashes the composite keys found in some dictionary to create a key
+    Concatenates and hashes (sha-256) the composite keys found in some dictionary to create a key
     This key is written into the dictionary
     :type data_object: A list of dicts or a dict
     """
@@ -71,6 +71,8 @@ def inject_composite_key(data_object, composite_keys, verbose=False):
     """
     Inject the composite key into the data object
     """
+    row_number = 2 # First data row in a fle will be on row 2. Note.  Prior to Python 3.7, dictionaries were not guaranteed to be ordered.  This could be unreliable on older versions of python
+
     for _dict in data_object:
 
         # Validate that it's actually a dict
@@ -81,7 +83,10 @@ def inject_composite_key(data_object, composite_keys, verbose=False):
         for composite_key in composite_keys:
             if composite_key not in _dict.keys():
                 raise ValueError(f"Composite key [{composite_key}] is not in the dictionary!  Keys found: [{_dict.keys()}]")
-            composite_key_string += str(_dict[composite_key])
+            if composite_key_string == "":
+                composite_key_string += str(_dict[composite_key])
+            else:
+                composite_key_string += f"+{str(_dict[composite_key])}"
 
         if composite_key_string == "":
             raise ValueError(f"Failed to create a composite key string for [{_dict}]")
@@ -102,6 +107,9 @@ def inject_composite_key(data_object, composite_keys, verbose=False):
                 raise ValueError(f"Key [{new_keys}] already exists in the dictionary!")
         _dict['_composite_key_hash'] = composite_key_hash
         _dict['_composite_key_string'] = composite_key_string
+        _dict['_row_number'] = row_number
+
+        row_number += 1
 
 
 
