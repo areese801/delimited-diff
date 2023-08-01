@@ -174,14 +174,14 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
 
                 if row_key_exists_in_a is True and row_key_exists_in_b is True:
                     # Both records have the key.  Compare the values
-                    record_a_value = record_a[k]
-                    record_b_value = record_b[k]
+                    record_a_value = record_a.get(k) # Row might be common, but not necessarily fields
+                    record_b_value = record_b.get(k) # Row might be common, but not necessarily fields
 
                     if record_a_value != record_b_value:
                         if verbose is True:
                             print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a mismatched field [{k}]."
-                                  f"\n\tValue in A = [{record_a[k]}] (row number {record_a['_row_number']})"
-                                  f"\n\tValue in B = [{record_b[k]}] (row number {record_b['_row_number']})")
+                                  f"\n\tValue in A = [{record_a_value}] (row number {record_a['_row_number']})"
+                                  f"\n\tValue in B = [{record_b_value}] (row number {record_b['_row_number']})")
 
                         if _composite_key not in diffs.keys():
                             diffs[_composite_key] = {}
