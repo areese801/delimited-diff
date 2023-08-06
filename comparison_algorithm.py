@@ -23,7 +23,8 @@ def _find_record_by_composite_key(list_of_dicts:list, composite_key:str) -> dict
 
     return ret_val
 
-def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=False) -> dict:
+def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fields:list = None,
+                     verbose:bool=False) -> dict:
     """
     The primary comparison algorithm
     :param list_of_dicts_a: The first delimited file, represented as a list of dicts
@@ -31,8 +32,6 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
     :param verbose: Set to true to print more information
     :return: dict
     """
-
-    #TODO:  Add handling for unimportant fields
 
     """
     Validate inputs
@@ -43,8 +42,14 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
         if type(list_of_dicts) is not list:
             raise TypeError(f"Object [{list_of_dicts}] is not a list!.  Expected a list of dicts!")
 
-    # TODO:  This next block is somewhat expensive.  Consider dropping it
-    # # Validate that the contents of the lists are dicts
+    # Coerce unimportant_fields to a list if it is not already
+    if unimportant_fields is None:
+        unimportant_fields = []
+    elif type(unimportant_fields) is not list:
+        unimportant_fields = [unimportant_fields]
+
+
+    # Validate that the contents of the lists are dicts
     # if verbose is True:
     #     print(f"Validating that the contents of the lists are dicts...")
     # for list_of_dicts in [list_of_dicts_a, list_of_dicts_b]:
@@ -63,6 +68,25 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
             composite_key = _dict['_composite_key_hash']
             if composite_key not in all_composite_keys:
                 all_composite_keys.append(composite_key)
+
+    """
+    Validate that any unimportant field specified is an actual field in the files.
+    """
+
+    # Create a unique list of all the keys in the dicts
+    if unimportant_fields:
+        unique_dict_keys = []
+        for list_of_dicts in [list_of_dicts_a, list_of_dicts_b]:
+            for _dict in list_of_dicts:
+                for key in _dict.keys():
+                    if key not in unique_dict_keys:
+                        unique_dict_keys.append(key)
+
+    # Bump the list of unimportant fields
+        for unimportant_field in unimportant_fields:
+            if not unimportant_field in unique_dict_keys:
+                raise ValueError(f"Unimportant field [{unimportant_field}] was is not a field in either file.  "
+                                 f"Please check spelling and try again!")
 
     # If the list of composite keys is shorter than both of the list of dicts, the composite key is not actually unique
     if len(all_composite_keys) < len(list_of_dicts_a) and len(all_composite_keys) < len(list_of_dicts_b):
@@ -118,27 +142,9 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
         if composite_key_exists_in_a is True and composite_key_exists_in_b is True:
 
             # Locate record from data set A
-
-            # TODO:  Drop this block.  Replaced by function below it
-            # record_a = None
-            # for _dict in list_of_dicts_a:
-            #     if _dict['_composite_key_hash'] == _composite_key:
-            #         record_a = _dict
-            #         record_a_composite_key = record_a['_composite_key_hash']
-            #         record_a_composite_key_string = record_a['_composite_key_string']
-
             record_a = _find_record_by_composite_key(list_of_dicts=list_of_dicts_a, composite_key=_composite_key)
             record_a_composite_key = record_a['_composite_key_hash']
             record_a_composite_key_string = record_a['_composite_key_string']
-
-            # Locate record from data set B
-            # TODO:  Drop this block.  Replaced by function below it
-            # record_b = None
-            # for _dict in list_of_dicts_b:
-            #     if _dict['_composite_key_hash'] == _composite_key:
-            #         record_b = _dict
-            #         record_b_composite_key = record_a['_composite_key_hash']
-            #         record_b_composite_key_string = record_a['_composite_key_string']
 
             record_b = _find_record_by_composite_key(list_of_dicts=list_of_dicts_b, composite_key=_composite_key)
             record_b_composite_key = record_b['_composite_key_hash']
@@ -151,7 +157,6 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
 
             # Create a list of keys that are in both records
             all_dict_keys = []
-            # foo = list(record_a.keys()) + list(record_b.keys()) # TODO:  Drop this line
             for _key in list(record_a.keys()) + list(record_b.keys()):
                 if _key not in all_dict_keys:
                     all_dict_keys.append(_key)
@@ -160,6 +165,10 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, verbose:bool=Fa
             row_key_exists_in_a = False
             row_key_exists_in_b = False
             for k in all_dict_keys:
+                if k in unimportant_fields:
+                    if verbose is True:
+                        print(f"Skipping unimportant field [{k}] for row numbers: A) {record_a['_row_number']} and B) {record_b['_row_number']}")
+                    continue
 
                 # We don't need to handle the metadata keys inserted by this program
                 if k in ['_composite_key_hash', '_composite_key_string', '_row_number']:

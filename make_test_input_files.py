@@ -1,5 +1,5 @@
 """
-Courtesy of ChatGPT, this program will genrate flat files that are ~80% similar
+Courtesy of ChatGPT, this program will generate flat files that are ~80% similar
 These can be used as inputs to test the main program
 """
 
@@ -17,7 +17,7 @@ def mutate_line(line):
 
 def main():
 
-    rows_to_generate = 100000  # Remember, some of these will be dropped
+    rows_to_generate = 1500  # Remember, some of these will be dropped
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
     test_file_dir = os.path.join(this_dir, 'test_files')
