@@ -11,11 +11,11 @@ import json
 from helpers import load_file_as_string
 from helpers import infer_delimiter
 from helpers import inject_composite_key
-from comparison import _make_comparison
+from comparison_algorithm import _make_comparison
 
 
-
-def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None, verbose: bool = False):
+def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None, unimportant_fields:list = None ,
+               verbose: bool = False):
     """
     :param file_a: The first delimited file to compare
     :param file_b: The second delimited file to compare
@@ -64,6 +64,13 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             delimiter = str(delimiter)
         print(f"Using specified delimiter [{repr(delimiter)}]")
 
+    """
+    Handle unimportant fields
+    """
+    if unimportant_fields is None:
+        unimportant_fields = []
+    elif type(unimportant_fields) is not list:
+        unimportant_fields = [unimportant_fields]
 
 
     """
@@ -136,7 +143,8 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     #TODO:  Is there a way to use multiprocessing here?  https://docs.python.org/3/library/multiprocessing.html
     print("Starting comparison...")
-    all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records, verbose=verbose) # Compare A to B
+    all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records
+                                              , unimportant_fields=unimportant_fields, verbose=verbose) # Compare A to B
     comparison_results = all_comparison_results['diffs']
     """
     Report statistics about the diffs
@@ -169,6 +177,8 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     # print(json.dumps(comparison_results, indent=4))
 
     print("\n\n[Summary]:")
+    if len(unimportant_fields) > 0:
+        print(f"--> SKIPPED over these unimportant fields: {unimportant_fields}")
     print(f"Lines in File A: {len(file_a_records)}")
     print(f"Lines in File B: {len(file_b_records)}")
     print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
@@ -188,7 +198,9 @@ if __name__ == '__main__':
     # # Lorem Ipsum unit tests
     file_1 = os.path.join(testing_dir,'test_file1.tsv')
     file_2 = os.path.join(testing_dir,'test_file2.tsv')
-    delim_diff(file_a=file_1, file_b=file_2, verbose=True)
+    delim_diff(file_a=file_1, file_b=file_2, verbose=True, unimportant_fields=['bar'])
+    # delim_diff(file_a=file_1, file_b=file_2, verbose=False)
+
 
     # blink-182 vs Green Day unit tests
     # file_1 = os.path.join(testing_dir,'small_test_file1.tsv')
