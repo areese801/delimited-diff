@@ -6,11 +6,13 @@ import os
 import sys
 import csv
 import io
+import argparse
 import json
 from helpers import load_file_as_string
 from helpers import infer_delimiter
 from helpers import inject_composite_key
 from comparison import _make_comparison
+
 
 
 def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None, verbose: bool = False):
@@ -132,6 +134,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     Do the comparison!!
     """
+    #TODO:  Is there a way to use multiprocessing here?  https://docs.python.org/3/library/multiprocessing.html
     print("Starting comparison...")
     all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records, verbose=verbose) # Compare A to B
     comparison_results = all_comparison_results['diffs']
@@ -177,6 +180,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
 
 if __name__ == '__main__':
     # TODO:  Drop this testing kludge
+    # TODO:  Parameterize for command line usage
     
     this_dir = os.path.dirname(os.path.realpath(__file__))
     testing_dir = os.path.join(this_dir, 'test_files')
