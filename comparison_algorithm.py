@@ -166,7 +166,8 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
             row_key_exists_in_b = False
             for k in all_dict_keys:
                 if k in unimportant_fields:
-                    print(f"Skipping unimportant field [{k}] for row numbers: A) {record_a['_row_number']} and B) {record_b['_row_number']}")
+                    if verbose is True:
+                        print(f"Skipping unimportant field [{k}] for row numbers: A) {record_a['_row_number']} and B) {record_b['_row_number']}")
                     continue
 
                 # We don't need to handle the metadata keys inserted by this program

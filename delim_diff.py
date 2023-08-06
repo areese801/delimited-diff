@@ -1,5 +1,5 @@
 """
-This program diffs delimtied files on a composite key
+This program diffs delimited files on a composite key
 """
 
 import os
@@ -65,15 +65,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
         print(f"Using specified delimiter [{repr(delimiter)}]")
 
     """
-    Handle unimportant fields
-    """
-    if unimportant_fields is None:
-        unimportant_fields = []
-    elif type(unimportant_fields) is not list:
-        unimportant_fields = [unimportant_fields]
-
-
-    """
     Handle the header records / composite key fields
     """
     file_a_header = file_a_str.split('\n')[0]
@@ -121,6 +112,19 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
         if not field in matched_fields:
             raise ValueError(f"Composite key field [{field}] is not in the matched fields!")
 
+    """
+    Handle unimportant fields
+    """
+    if unimportant_fields is None:
+        unimportant_fields = []
+    elif type(unimportant_fields) is not list:
+        unimportant_fields = [unimportant_fields]
+
+    # Unimportant fields mustn't be in the composite key fields
+    for field in unimportant_fields:
+        if field in composite_key_fields:
+            raise ValueError(f"Unimportant field [{field}] is in the composite key fields!  "
+                             f"If it is part of the key, it cannot be specified as unimportant, which causes it to be ignored.")
 
 
     """
@@ -182,29 +186,57 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     print(f"Lines in File A: {len(file_a_records)}")
     print(f"Lines in File B: {len(file_b_records)}")
     print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
-    print(f"Total lines with diffs: {total_lines_with_diffs}")
-    print(f"Total field level diffs: {field_level_diffs_running_total}")
+    print(f"Total lines with diffs (Excluding Unimportant Fields): {total_lines_with_diffs}")
+    print(f"Total field level diffs (Excluding Unimportant Fields): {field_level_diffs_running_total}")
     print(f"Total rows present in A but not in B: {present_in_a_not_in_b_running_total}")
     print(f"Total rows present in B but not in A: {present_in_b_not_in_a_running_total}")
 
+    ret_val = comparison_results
+    return ret_val
+
 
 if __name__ == '__main__':
-    # TODO:  Drop this testing kludge
-    # TODO:  Parameterize for command line usage
-    
-    this_dir = os.path.dirname(os.path.realpath(__file__))
-    testing_dir = os.path.join(this_dir, 'test_files')
 
-    # # Lorem Ipsum unit tests
-    file_1 = os.path.join(testing_dir,'test_file1.tsv')
-    file_2 = os.path.join(testing_dir,'test_file2.tsv')
-    delim_diff(file_a=file_1, file_b=file_2, verbose=True, unimportant_fields=['bar'])
-    # delim_diff(file_a=file_1, file_b=file_2, verbose=False)
+    parser = argparse.ArgumentParser(description='Compare two delimited files.')
+
+    parser.add_argument('--file-a', '-a',
+                        type=str,
+                        required=True,
+                        help='The first file (File A) to be used in the comparison.')
+    parser.add_argument('--file-b', '-b',
+                        type=str,
+                        required=True,
+                        help='The second file (File B) to be used in the comparison.')
+    parser.add_argument('--delimiter', '-d',
+                        type=str,
+                        required=False,
+                        default='\t',
+                        help='The delimiter to use when parsing the files.  Default is tab.')
+    parser.add_argument('--composite-key-fields', '-k',
+                        type=str,
+                        required=False,
+                        nargs='+',
+                        help='The field(s) to use as the composite key.  '
+                             'If not specified, the first matched field will be used.')
+    parser.add_argument('--unimportant-fields', '-u',
+                        type=str,
+                        required=False,
+                        nargs='+',
+                        help='The field(s) to ignore when comparing the files.')
+    parser.add_argument('--verbose', '-v',
+                        action='store_true',
+                        required=False,
+                        help='Prints out the details of the comparison.')
+
+    args = parser.parse_args()
+    delim_diff(file_a=args.file_a,
+               file_b=args.file_b,
+               delimiter=args.delimiter,
+               composite_key_fields=args.composite_key_fields,
+               unimportant_fields=args.unimportant_fields,
+               verbose=args.verbose)
 
 
-    # blink-182 vs Green Day unit tests
-    # file_1 = os.path.join(testing_dir,'small_test_file1.tsv')
-    # file_2 = os.path.join(testing_dir,'small_test_file2.tsv')
-    # delim_diff(file_a=file_1, file_b=file_2, verbose=True, composite_key_fields=['Band_Name' , 'Instrument'])
-    # delim_diff(file_a=file_1, file_b=file_2, verbose=True, composite_key_fields=['Instrument'])
+
+
 
