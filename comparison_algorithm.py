@@ -187,10 +187,6 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                     record_b_value = record_b.get(k) # Row might be common, but not necessarily fields
 
                     if record_a_value != record_b_value:
-                        if verbose is True:
-                            print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a mismatched field [{k}]."
-                                  f"\n\tValue in A = [{record_a_value}] (row number {record_a['_row_number']})"
-                                  f"\n\tValue in B = [{record_b_value}] (row number {record_b['_row_number']})")
 
                         if _composite_key not in diffs.keys():
                             diffs[_composite_key] = {}
@@ -205,6 +201,11 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                         _levenshtein_distance = levenshtein_distance(str(record_a_value), str(record_b_value))
                         diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = _levenshtein_distance
 
+                        if verbose is True:
+                            print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a mismatched field [{k}]."
+                                  f"\n\tValue in A = [{record_a_value}] (row number {record_a['_row_number']})"
+                                  f"\n\tValue in B = [{record_b_value}] (row number {record_b['_row_number']})"
+                                  f"\n\tLevenshtein Distance = [{_levenshtein_distance}]")
                     else:
                         if verbose is True:
                             print(f"\nComposite key [{record_a['_composite_key_string']}: {_composite_key}] has a matched field [{k}]."
