@@ -17,7 +17,7 @@ def mutate_line(line):
 
 def main():
 
-    rows_to_generate = 1500  # Remember, some of these will be dropped
+    rows_to_generate = 10000  # Remember, some of these will be dropped
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
     test_file_dir = os.path.join(this_dir, 'test_files')
