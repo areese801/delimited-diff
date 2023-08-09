@@ -12,7 +12,22 @@ from helpers import load_file_as_string
 from helpers import infer_delimiter
 from helpers import inject_composite_key
 from comparison_algorithm import _make_comparison
+import multiprocessing
 
+def process_bucket(bucket:dict, shared_results_dict:dict):
+    #TODO:  Docstring here
+
+    bucket_id = bucket['bucket_id']
+    list_a = bucket['A']
+    list_b = bucket['B']
+    unimportant_fields = bucket['unimportant_fields']
+    verbose = bucket['verbose']
+
+    comparison_result = _make_comparison(list_of_dicts_a=list_a, list_of_dicts_b=list_b,
+                                         unimportant_fields=unimportant_fields, verbose=verbose)
+    shared_results_dict[bucket_id] = comparison_result
+
+    return comparison_result
 
 def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None, unimportant_fields:list = None ,
                verbose: bool = False):
@@ -23,7 +38,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     :param composite_key_fields: A list of fields to use as the composite key.  If not passed, the first matched field
         This list of fields must be present in both files
     :param verbose: If True, will print verbose output
-    :return:  #TODO:  Figure out what to return
+    :return:  dict of comparison results
     """
 
     """
@@ -44,7 +59,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     # Handle the delimiter
     """
-
     # If the delimiter is not specified, infer it
     if not delimiter:
         _inferred_delimiter_a = infer_delimiter(file_a_str)
@@ -92,7 +106,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     Handle the the composite key 
     """
-
     # Ensure we're dealing with a list for composite_key_fields
     if composite_key_fields is None:
         composite_key_fields = []
@@ -126,7 +139,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             raise ValueError(f"Unimportant field [{field}] is in the composite key fields!  "
                              f"If it is part of the key, it cannot be specified as unimportant, which causes it to be ignored.")
 
-
     """
     Load the files as dictionaries
     """
@@ -143,10 +155,60 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     inject_composite_key(file_b_records, composite_key_fields)
 
     """
+    Bucketize the records
+    """
+    # TODO:  Drop this part
+    # for rec_list in [file_a_records, file_b_records]:
+    #     for rec in rec_list:
+    #         print(rec['_composite_key_hash'])
+
+    print("Generate empty buckets for batching...")
+    hex_chars = '0123456789abcdef'
+    buckets = {}
+    for h1 in hex_chars:
+        for h2 in hex_chars:
+            bucket_id = f"{h1}{h2}"
+            buckets[bucket_id] = dict(bucket_id=bucket_id, A=[], B=[])
+
+    print("Assigning records to buckets...")
+    for rec_list in [file_a_records, file_b_records]:
+        for rec in rec_list:
+            bucket = rec['_composite_key_hash'][:2]
+            if rec_list is file_a_records:
+                buckets[bucket]['A'].append(rec)
+            else:
+                buckets[bucket]['B'].append(rec)
+            buckets[bucket]['unimportant_fields'] = unimportant_fields
+            buckets[bucket]['verbose'] = verbose  #TODO:  Consider hard-coding to false as we'll be counting out of order with multiprocessing
+
+    """
     Do the comparison!!
     """
-    #TODO:  Is there a way to use multiprocessing here?  https://docs.python.org/3/library/multiprocessing.html
     print("Starting comparison...")
+    # TODO:  Implement MultiProcessing here
+
+    bucket_keys = list(buckets.keys())
+
+    # Instantiate Processes.  See:  https://www.digitalocean.com/community/tutorials/python-multiprocessing-example
+    procs = []
+    shared_result_dict = {}
+    for bucket_key in bucket_keys:
+        kwargs = dict(bucket=buckets[bucket_key], shared_results_dict=shared_result_dict)
+        proc = multiprocessing.Process(target=process_bucket, kwargs=kwargs)
+        procs.append(proc)
+        proc.start()
+
+    # Complete the processes
+    for proc in procs:
+        proc.join()
+        print(f"Process {proc.pid} completed.")
+
+    # Single Process Comparison:
+    # TODO:  Parameterize an option to use a single process vs multiprocessing
+    # TODO:  Have a horse race between single process and multiprocessing
+
+
+
     all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records
                                               , unimportant_fields=unimportant_fields, verbose=verbose) # Compare A to B
     comparison_results = all_comparison_results['diffs']
