@@ -158,10 +158,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     Bucketize the records
     """
-    # TODO:  Drop this part
-    # for rec_list in [file_a_records, file_b_records]:
-    #     for rec in rec_list:
-    #         print(rec['_composite_key_hash'])
 
     print("Generate empty buckets for batching...")
     hex_chars = '0123456789abcdef'
@@ -180,7 +176,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             else:
                 buckets[bucket]['B'].append(rec)
             buckets[bucket]['unimportant_fields'] = unimportant_fields
-            buckets[bucket]['verbose'] = verbose  #TODO:  Consider hard-coding to false as we'll be counting out of order with multiprocessing
+            buckets[bucket]['verbose'] = False  #TODO:  Consider hard-coding to false as we'll be counting out of order with multiprocessing
 
     """
     Do the comparison!!
@@ -241,43 +237,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     """
     Report statistics about the diffs
     """
-    # total_lines_with_diffs = len(comparison_results)
-    # field_level_diffs_running_total = 0
-    # present_in_a_not_in_b_running_total = 0
-    # present_in_b_not_in_a_running_total = 0
-    #
-    # for k in comparison_results.keys():
-    #
-    #     result = comparison_results[k]
-    #
-    #     # Count Field Level Diffs
-    #     field_level_diffs = result.get('_field_differences_count')
-    #     if field_level_diffs:
-    #         field_level_diffs_running_total += field_level_diffs
-    #
-    #     # Count Present in A not in B diffs
-    #     present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
-    #     if present_in_a_not_in_b:
-    #         present_in_a_not_in_b_running_total += 1
-    #
-    #     # Count Present in B not in A diffs
-    #     present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
-    #     if present_in_b_not_in_a:
-    #         present_in_b_not_in_a_running_total += 1
-    #
-    # # print("\n[Details]:")
-    # # print(json.dumps(comparison_results, indent=4))
-    #
-    # print("\n\n[Summary]:")
-    # if len(unimportant_fields) > 0:
-    #     print(f"--> SKIPPED over these unimportant fields: {unimportant_fields}")
-    # print(f"Lines in File A: {len(file_a_records)}")
-    # print(f"Lines in File B: {len(file_b_records)}")
-    # print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
-    # print(f"Total lines with diffs (Excluding Unimportant Fields): {total_lines_with_diffs}")
-    # print(f"Total field level diffs (Excluding Unimportant Fields): {field_level_diffs_running_total}")
-    # print(f"Total rows present in A but not in B: {present_in_a_not_in_b_running_total}")
-    # print(f"Total rows present in B but not in A: {present_in_b_not_in_a_running_total}")
 
     # Report the results from the multiprocessing variant
     print("\n\n[Summary from Multiprocessing]:")

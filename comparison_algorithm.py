@@ -174,8 +174,6 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                 if k in ['_composite_key_hash', '_composite_key_string', '_row_number']:
                     continue
 
-                # TODO:  Put handling here for unimportant fields.  Or maybe somewhere above??
-
                 if k in record_a.keys():
                     row_key_exists_in_a = True
                 if k in record_b.keys():
