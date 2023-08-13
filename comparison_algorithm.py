@@ -16,7 +16,7 @@ def _find_record_by_composite_key(list_of_dicts:list, composite_key:str) -> dict
 
     for _dict in list_of_dicts:
         if _dict['_composite_key_hash'] == composite_key:
-            ret_val  = _dict
+            ret_val = _dict
 
     if ret_val is None:
         raise ValueError(f"Failed to locate record with composite key [{composite_key}]")
@@ -99,7 +99,7 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
     matched_composite_keys = []
     unmatched_composite_keys_from_list_a = []
     unmatched_composite_keys_from_list_b = []
-    diffs = {}
+    diffs = {}  # This is where we'll keep all of the diffs we encounter along the way
     counter = 0
     for _composite_key in all_composite_keys:
         counter += 1
@@ -129,10 +129,16 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
 
         # Track the matched and unmatched composite keys
         if composite_key_exists_in_a is True and composite_key_exists_in_b is True:
+            # Both lists have the composite key
+
             matched_composite_keys.append(_composite_key)
         elif composite_key_exists_in_a is True and composite_key_exists_in_b is False:
+            # Only list A has the composite key
+
             unmatched_composite_keys_from_list_a.append(_composite_key)
         elif composite_key_exists_in_a is False and composite_key_exists_in_b is True:
+            # Only list B has the composite key
+
             unmatched_composite_keys_from_list_b.append(_composite_key)
         else:
             # We should never get here
