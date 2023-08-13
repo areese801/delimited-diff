@@ -13,7 +13,7 @@ from helpers import infer_delimiter
 from helpers import inject_composite_key
 from comparison_algorithm import _make_comparison
 from multiprocessing import Manager, Pool
-from concurrent.futures import ProcessPoolExecutor, as_completed
+
 
 
 def process_bucket(bucket: dict, shared_results_dict: dict):
@@ -32,7 +32,8 @@ def process_bucket(bucket: dict, shared_results_dict: dict):
     verbose = bucket['verbose']
 
     comparison_result = _make_comparison(list_of_dicts_a=list_a, list_of_dicts_b=list_b,
-                                         unimportant_fields=unimportant_fields, verbose=verbose)
+                                         unimportant_fields=unimportant_fields, verbose=verbose,
+                                         _multiprocessing_bucket_id=bucket_id)
     shared_results_dict[bucket_id] = comparison_result
 
     return comparison_result  #TODO:  Is this line needed?  We're just relying on the shared obj here
@@ -188,16 +189,13 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
         bucket_char_width = len(list(buckets.keys())[0])
         for rec_list in [file_a_records, file_b_records]:
             for rec in rec_list:
-                bucket = rec['_composite_key_hash'][:bucket_char_width]
+                bucket = rec['__composite_key_hash'][:bucket_char_width]
                 if rec_list is file_a_records:
                     buckets[bucket]['A'].append(rec)
                 else:
                     buckets[bucket]['B'].append(rec)
                 buckets[bucket]['unimportant_fields'] = unimportant_fields
-                if use_multiprocessing is True:
-                    buckets[bucket]['verbose'] = False  # Force Multiprocessing to be quiet
-                else:
-                    buckets[bucket]['verbose'] = verbose
+                buckets[bucket]['verbose'] = verbose
 
         """
         Do the comparison using multiprocessing
@@ -258,7 +256,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             result = mp_all_comparison_results['diffs'][k]
 
             # Count Field Level Diffs
-            field_level_diffs = result.get('_field_differences_count')
+            field_level_diffs = result.get('__field_differences_count')
             if field_level_diffs:
                 field_level_diffs_running_total += field_level_diffs
 
@@ -304,7 +302,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             result = comparison_results[k]
 
             # Count Field Level Diffs
-            field_level_diffs = result.get('_field_differences_count')
+            field_level_diffs = result.get('__field_differences_count')
             if field_level_diffs:
                 field_level_diffs_running_total += field_level_diffs
 

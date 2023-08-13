@@ -102,12 +102,12 @@ def inject_composite_key(data_object, composite_keys, verbose=False):
             print(f"Calculated composite key hash [{composite_key_hash}] for composite key string [{composite_key_string}]")
 
         # Inject the composite key hash into the dictionary
-        for new_keys in ['_composite_key_hash', '_composite_key_string']:
+        for new_keys in ['__composite_key_hash', '__composite_key_string']:
             if new_keys in _dict.keys():
                 raise ValueError(f"Key [{new_keys}] already exists in the dictionary!")
-        _dict['_composite_key_hash'] = composite_key_hash
-        _dict['_composite_key_string'] = composite_key_string
-        _dict['_row_number'] = row_number
+        _dict['__composite_key_hash'] = composite_key_hash
+        _dict['__composite_key_string'] = composite_key_string
+        _dict['__row_number'] = row_number
 
         row_number += 1
 
