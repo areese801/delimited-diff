@@ -218,11 +218,11 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     for sr in shared_results.keys():
         print(f"Processing results for bucket {sr}...")
         rec = shared_results[sr]
-        _diffs = rec['diffs']
-        _unmatched_composite_keys_from_list_a = rec['unmatched_composite_keys_from_list_a']
-        _unmatched_composite_keys_from_list_b = rec['unmatched_composite_keys_from_list_b']
-        _matched_composite_keys = rec['matched_composite_keys']
-        _all_composite_keys = rec['all_composite_keys']
+        _diffs = rec.get('diffs') or {}
+        _unmatched_composite_keys_from_list_a = rec.get('unmatched_composite_keys_from_list_a') or []
+        _unmatched_composite_keys_from_list_b = rec.get('unmatched_composite_keys_from_list_b') or []
+        _matched_composite_keys = rec.get('matched_composite_keys') or []
+        _all_composite_keys = rec.get('all_composite_keys') or []
 
         mp_all_comparison_results['diffs'].update(_diffs)
         mp_all_comparison_results['unmatched_composite_keys_from_list_a'].extend(_unmatched_composite_keys_from_list_a)
@@ -234,50 +234,50 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     # TODO:  Parameterize an option to use a single process vs multiprocessing
     # TODO:  Have a horse race between single process and multiprocessing
 
-    # all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records
-    #                                           , unimportant_fields=unimportant_fields, verbose=verbose) # Compare A to B
-    # comparison_results = all_comparison_results['diffs']
+    all_comparison_results = _make_comparison(list_of_dicts_a=file_a_records, list_of_dicts_b=file_b_records
+                                              , unimportant_fields=unimportant_fields, verbose=verbose) # Compare A to B
+    comparison_results = all_comparison_results['diffs']
 
     """
     Report statistics about the diffs
     """
-    # total_lines_with_diffs = len(comparison_results)
-    # field_level_diffs_running_total = 0
-    # present_in_a_not_in_b_running_total = 0
-    # present_in_b_not_in_a_running_total = 0
-    #
-    # for k in comparison_results.keys():
-    #
-    #     result = comparison_results[k]
-    #
-    #     # Count Field Level Diffs
-    #     field_level_diffs = result.get('_field_differences_count')
-    #     if field_level_diffs:
-    #         field_level_diffs_running_total += field_level_diffs
-    #
-    #     # Count Present in A not in B diffs
-    #     present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
-    #     if present_in_a_not_in_b:
-    #         present_in_a_not_in_b_running_total += 1
-    #
-    #     # Count Present in B not in A diffs
-    #     present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
-    #     if present_in_b_not_in_a:
-    #         present_in_b_not_in_a_running_total += 1
-    #
-    # # print("\n[Details]:")
-    # # print(json.dumps(comparison_results, indent=4))
-    #
-    # print("\n\n[Summary]:")
-    # if len(unimportant_fields) > 0:
-    #     print(f"--> SKIPPED over these unimportant fields: {unimportant_fields}")
-    # print(f"Lines in File A: {len(file_a_records)}")
-    # print(f"Lines in File B: {len(file_b_records)}")
-    # print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
-    # print(f"Total lines with diffs (Excluding Unimportant Fields): {total_lines_with_diffs}")
-    # print(f"Total field level diffs (Excluding Unimportant Fields): {field_level_diffs_running_total}")
-    # print(f"Total rows present in A but not in B: {present_in_a_not_in_b_running_total}")
-    # print(f"Total rows present in B but not in A: {present_in_b_not_in_a_running_total}")
+    total_lines_with_diffs = len(comparison_results)
+    field_level_diffs_running_total = 0
+    present_in_a_not_in_b_running_total = 0
+    present_in_b_not_in_a_running_total = 0
+
+    for k in comparison_results.keys():
+
+        result = comparison_results[k]
+
+        # Count Field Level Diffs
+        field_level_diffs = result.get('_field_differences_count')
+        if field_level_diffs:
+            field_level_diffs_running_total += field_level_diffs
+
+        # Count Present in A not in B diffs
+        present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
+        if present_in_a_not_in_b:
+            present_in_a_not_in_b_running_total += 1
+
+        # Count Present in B not in A diffs
+        present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
+        if present_in_b_not_in_a:
+            present_in_b_not_in_a_running_total += 1
+
+    # print("\n[Details]:")
+    # print(json.dumps(comparison_results, indent=4))
+
+    print("\n\n[Summary]:")
+    if len(unimportant_fields) > 0:
+        print(f"--> SKIPPED over these unimportant fields: {unimportant_fields}")
+    print(f"Lines in File A: {len(file_a_records)}")
+    print(f"Lines in File B: {len(file_b_records)}")
+    print(f"Unique composite keys across both files: {len(all_comparison_results['all_composite_keys'])}")
+    print(f"Total lines with diffs (Excluding Unimportant Fields): {total_lines_with_diffs}")
+    print(f"Total field level diffs (Excluding Unimportant Fields): {field_level_diffs_running_total}")
+    print(f"Total rows present in A but not in B: {present_in_a_not_in_b_running_total}")
+    print(f"Total rows present in B but not in A: {present_in_b_not_in_a_running_total}")
 
     # Report the results from the multiprocessing variant
     print("\n\n[Summary from Multiprocessing]:")
