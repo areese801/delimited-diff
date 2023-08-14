@@ -332,6 +332,8 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     return ret_val
 
 
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Compare two delimited files.')
