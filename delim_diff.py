@@ -13,6 +13,7 @@ from helpers import infer_delimiter
 from helpers import inject_composite_key
 from comparison_algorithm import _make_comparison
 from multiprocessing import Manager, Pool
+import json
 
 
 
@@ -38,14 +39,18 @@ def process_bucket(bucket: dict, shared_results_dict: dict):
 
     return comparison_result  #TODO:  Is this line needed?  We're just relying on the shared obj here
 
-def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None, unimportant_fields:list = None ,
-               verbose: bool = False, use_multiprocessing: bool = True):
+def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fields: list = None,
+               unimportant_fields:list = None , output_json: bool = False, verbose: bool = False,
+               use_multiprocessing: bool = True):
     """
     :param file_a: The first delimited file to compare
     :param file_b: The second delimited file to compare
     :param delimiter: The delimiter to use.  It nof passed, will be inferred
     :param composite_key_fields: A list of fields to use as the composite key.  If not passed, the first matched field
         This list of fields must be present in both files
+    :unimportant_fields: A list of fields to ignore when comparing rows
+    :param output_json: If True, will print the results as a JSON string to stderr.  This can be useful for piping
+        the results to another program.
     :param verbose: If True, will print verbose output
     :param use_multiprocessing: If True, multiprocessing will be used.  Note that multiprocessing is tremendously faster
         and should generally always be used unless this program is being debugged.
@@ -86,7 +91,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
             print(f"Using inferred delimiter [{repr(delimiter)}]")
     else:
         if not type(delimiter) == str:
-            print(f"Delimiter [{delimiter}] is not a string, but will be treated as one.", file=sys.stderr)
+            print(f"Delimiter [{delimiter}] is not a string, but will be treated as one.")
             delimiter = str(delimiter)
         print(f"Using specified delimiter [{repr(delimiter)}]")
 
@@ -128,7 +133,7 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
     if not composite_key_fields:
         composite_key_fields = [matched_fields[0]]
         print(f"Will attempt to use [{composite_key_fields[0]}] as the composite key field since none were specified.  "
-              f"This is the first matched (leftmost) field between both data sets.", file=sys.stderr)
+              f"This is the first matched (leftmost) field between both data sets.")
     else:
         print(f"Using specified composite key fields {composite_key_fields}")
 
@@ -329,6 +334,12 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
 
         ret_val = comparison_results
 
+    # Print the diffs as a JSON string if the user wants it
+    if output_json is True:
+        print("\n\n[BEGIN Diff Results as JSON]:", file=sys.stderr)
+        print(json.dumps(ret_val, indent=4), file=sys.stderr)
+        print("\n\n[END Diff Results as JSON]:", file=sys.stderr)
+
     return ret_val
 
 
@@ -360,6 +371,12 @@ if __name__ == '__main__':
                         required=False,
                         nargs='+',
                         help='The field(s) to ignore when comparing the files.')
+    parser.add_argument('--output-json', '-j',
+                        action='store_true',
+                        required=False,
+                        help='If enabled, the results of the diff will be output to stderr as JSON.  '
+                             'This can be useful in larger workflows, for example when executing this program on a '
+                             'headless server')
     parser.add_argument('--verbose', '-v',
                         action='store_true',
                         required=False,
@@ -378,6 +395,7 @@ if __name__ == '__main__':
                delimiter=args.delimiter,
                composite_key_fields=args.composite_key_fields,
                unimportant_fields=args.unimportant_fields,
+               output_json=args.output_json,
                verbose=args.verbose,
                use_multiprocessing=use_multiprocessing)
 
