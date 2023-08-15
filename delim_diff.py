@@ -266,12 +266,12 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
                 field_level_diffs_running_total += field_level_diffs
 
             # Count Present in A not in B diffs
-            present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
+            present_in_a_not_in_b = result.get('__record_present_in_A_not_in_B')
             if present_in_a_not_in_b:
                 present_in_a_not_in_b_running_total += 1
 
             # Count Present in B not in A diffs
-            present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
+            present_in_b_not_in_a = result.get('__record_present_in_B_not_in_A')
             if present_in_b_not_in_a:
                 present_in_b_not_in_a_running_total += 1
 
@@ -312,12 +312,12 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
                 field_level_diffs_running_total += field_level_diffs
 
             # Count Present in A not in B diffs
-            present_in_a_not_in_b = result.get('_record_present_in_A_not_in_B')
+            present_in_a_not_in_b = result.get('__record_present_in_A_not_in_B')
             if present_in_a_not_in_b:
                 present_in_a_not_in_b_running_total += 1
 
             # Count Present in B not in A diffs
-            present_in_b_not_in_a = result.get('_record_present_in_B_not_in_A')
+            present_in_b_not_in_a = result.get('__record_present_in_B_not_in_A')
             if present_in_b_not_in_a:
                 present_in_b_not_in_a_running_total += 1
 
@@ -341,8 +341,6 @@ def delim_diff(file_a: str, file_b: str, delimiter: str = None, composite_key_fi
         print("\n\n[END Diff Results as JSON]:", file=sys.stderr)
 
     return ret_val
-
-
 
 
 if __name__ == '__main__':
