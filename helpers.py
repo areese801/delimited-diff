@@ -112,9 +112,20 @@ def inject_composite_key(data_object, composite_keys, verbose=False):
         row_number += 1
 
 
+def _find_record_by_composite_key(list_of_dicts:list, composite_key:str) -> dict:
+    """
+    Searches a list of dicts for a record with a specific composite key
+    :param list_of_dicts: List of dictionaries to search
+    :param composite_key: The sought composite key
+    :return:
+    """
+    ret_val = None
 
+    for _dict in list_of_dicts:
+        if _dict['__composite_key_hash'] == composite_key:
+            ret_val = _dict
 
+    if ret_val is None:
+        raise ValueError(f"Failed to locate record with composite key [{composite_key}]")
 
-
-
-
+    return ret_val

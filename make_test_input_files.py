@@ -15,9 +15,9 @@ def mutate_line(line):
     ret_val =  f"{id}\t{lorem.sentence()}\t{lorem.sentence()}"
     return ret_val
 
-def main():
+def main(rows_to_generate=1000):
 
-    rows_to_generate = 1000  # Remember, some of these will be dropped
+    # rows_to_generate = 1  # Remember, some of these will be dropped
 
     this_dir = os.path.dirname(os.path.realpath(__file__))
     test_file_dir = os.path.join(this_dir, 'test_files')
@@ -70,4 +70,4 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    main(rows_to_generate=500)

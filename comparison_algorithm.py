@@ -1,27 +1,12 @@
 """
 This module contains the primary comparison algorithm
 """
-import sys
 
 from Levenshtein import distance as levenshtein_distance
 
-def _find_record_by_composite_key(list_of_dicts:list, composite_key:str) -> dict:
-    """
-    Searches a list of dicts for a record with a specific composite key
-    :param list_of_dicts: List of dictionaries to search
-    :param composite_key: The sought composite key
-    :return:
-    """
-    ret_val = None
+from helpers import _find_record_by_composite_key
+from html_inject import inject_diff_html
 
-    for _dict in list_of_dicts:
-        if _dict['__composite_key_hash'] == composite_key:
-            ret_val = _dict
-
-    if ret_val is None:
-        raise ValueError(f"Failed to locate record with composite key [{composite_key}]")
-
-    return ret_val
 
 def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fields:list = None,
                      verbose: bool = False, _multiprocessing_bucket_id: str = None) -> dict:
@@ -152,6 +137,11 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
             raise ValueError(f"Unexpected state!  composite_key_exists_in_a=[{composite_key_exists_in_a}] exists_in_b=[{composite_key_exists_in_b}]")
 
         # If the key exists in both of the lists, then we need to do field-level comparisons
+
+        """
+        Handle field-level diffs for keys that exist in both sets
+        """
+
         if composite_key_exists_in_a is True and composite_key_exists_in_b is True:
 
             # Locate record from data set A
@@ -263,6 +253,11 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                     raise ValueError(f"Unexpected state!  row_key_exists_in_a=[{row_key_exists_in_a}] "
                                      f"row_key_exists_in_b=[{row_key_exists_in_b}]")
         elif composite_key_exists_in_a is True and composite_key_exists_in_b is False:
+
+            """
+            Handle the case where the key exists in record A but not in record B
+            """
+
             # The key exists in record_a but not in record_b
             record_a = _find_record_by_composite_key(list_of_dicts=list_of_dicts_a, composite_key=_composite_key)
 
@@ -271,13 +266,30 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
 
             if _composite_key not in diffs.keys():
                 diffs[_composite_key] = {}
-                diffs[_composite_key]['_record_present_in_A_not_in_B'] = True
+                # diffs[_composite_key]['_record_present_in_A_not_in_B'] = True #TODO:  Drop this in favor of below
+
+            if k not in diffs[_composite_key].keys():
+                diffs[_composite_key][k] = {}
+
+            diffs[_composite_key][k]['__diff_type'] = 'Row In A but not in B'
 
             for k in record_a.keys():
-                diffs[_composite_key][f"{k}_A"] = record_a[k]
-                diffs[_composite_key][f"{k}_B"] = None
-                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_a[k]))
+                # diffs[_composite_key][f"{k}_A"] = record_a[k]  # TODO:  Drop this in favor of the below
+                # diffs[_composite_key][f"{k}_B"] = None  # TODO:  Drop this in favor of the below
+                # diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_a[k]))  # TODO:  Drop this in favor of the below
+
+                if k not in diffs[_composite_key].keys():
+                    diffs[_composite_key][k] = {}
+
+                diffs[_composite_key][k]['A'] = {record_a[k]}
+                diffs[_composite_key][k]['B'] = None
+                diffs[_composite_key][k]['__levenshtein_distance'] = len(str(record_a[k]))
+
         elif composite_key_exists_in_a is False and composite_key_exists_in_b is True:
+
+            """
+            Handle the case where the key exists in Record B but not in Record A
+            """
             # The key exists in record_b but not in record_a
             record_b = _find_record_by_composite_key(list_of_dicts=list_of_dicts_b, composite_key=_composite_key)
 
@@ -289,19 +301,37 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                 diffs[_composite_key] = {}
                 diffs[_composite_key]['_record_present_in_B_not_in_A'] = True
 
+            if k not in diffs[_composite_key].keys():
+                diffs[_composite_key][k] = {}
+
+            diffs[_composite_key][k]['__diff_type'] = 'Row In B but not in A'
+
             for k in record_b.keys():
-                diffs[_composite_key][f"{k}_A"] = None
-                diffs[_composite_key][f"{k}_B"] = record_b[k]
-                diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_b[k]))
+                # diffs[_composite_key][f"{k}_A"] = None  #TODO:  Drop this line in favor of the below
+                # diffs[_composite_key][f"{k}_B"] = record_b[k]  #TODO:  Drop this line in favor of the below
+                # diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(str(record_b[k]))  #TODO:  Drop this line in favor of the below
+
+                if k not in diffs[_composite_key].keys():
+                    diffs[_composite_key][k] = {}
+
+                diffs[_composite_key][k]['A'] = None
+                diffs[_composite_key][k]['B'] = {record_b[k]}
+                diffs[_composite_key][k]['__levenshtein_distance'] = len(str(record_b[k]))
+
         else:
             # We should never get here
             raise ValueError(f"Unexpected state!  composite_key_exists_in_a=[{composite_key_exists_in_a}] "
                              f"composite_key_exists_in_b=[{composite_key_exists_in_b}]")
 
-    ret_val = dict(diffs=diffs,
+    comparison_result = dict(diffs=diffs,
                    unmatched_composite_keys_from_list_a=unmatched_composite_keys_from_list_a,
                    unmatched_composite_keys_from_list_b=unmatched_composite_keys_from_list_b,
                    matched_composite_keys=matched_composite_keys,
                    all_composite_keys=all_composite_keys)
 
-    return ret_val
+    """
+    Decorate the diffs_result with HTML for displaying later
+    """
+    inject_diff_html(comparison_results=comparison_result)
+
+    return comparison_result
