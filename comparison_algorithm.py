@@ -37,14 +37,6 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
         unimportant_fields = [unimportant_fields]
 
 
-    # Validate that the contents of the lists are dicts
-    # if verbose is True:
-    #     print(f"Validating that the contents of the lists are dicts...")
-    # for list_of_dicts in [list_of_dicts_a, list_of_dicts_b]:
-    #     for _dict in list_of_dicts:
-    #         if type(_dict) is not dict:
-    #             raise TypeError(f"Encountered object of type [{type(_dict)}] in list.  Expected a list of dicts!\n{_dict}")
-
     """
     # Interrogate both lists of dicts for the composite keys
     """
@@ -230,10 +222,17 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                         diffs[_composite_key]['__composite_key_hash'] = record_a_composite_key
                         diffs[_composite_key]['__composite_key_string'] = record_a_composite_key_string
 
-                    diffs[_composite_key][f"{k}_Diff_Type"] = 'Row In A but not in B'
-                    diffs[_composite_key][f"{k}_A"] = record_a_value
-                    diffs[_composite_key][f"{k}_B"] = None
-                    diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_a_value)
+                    # diffs[_composite_key][f"{k}_Diff_Type"] = 'Row In A but not in B'  # TODO:  Drop this block in favor of that below
+                    # diffs[_composite_key][f"{k}_A"] = record_a_value  # TODO:  Drop this block in favor of that below
+                    # diffs[_composite_key][f"{k}_B"] = None  # TODO:  Drop this block in favor of that below
+                    # diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_a_value)  # TODO:  Drop this block in favor of that below
+
+                    diffs[_composite_key][k] = dict(__diff_type='Row In A but not in B',
+                                                    A=record_a_value,
+                                                    B=None,
+                                                    __levenshtein_distance=len(record_a_value))
+
+
                 elif row_key_exists_in_b is True and row_key_exists_in_a is False:
                     # The key exists in record_b but not in record_a
                     if verbose is True:
@@ -244,14 +243,20 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                         diffs[_composite_key]['__composite_key_hash'] = record_b_composite_key
                         diffs[_composite_key]['__composite_key_string'] = record_b_composite_key_string
 
-                    diffs[_composite_key][f"{k}_Diff_Type"] = 'Row In B but not in A'
-                    diffs[_composite_key][f"{k}_A"] = None
-                    diffs[_composite_key][f"{k}_B"] = record_b_value
-                    diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_b_value)
+                    # diffs[_composite_key][f"{k}_Diff_Type"] = 'Row In B but not in A'  # TODO:  Drop this bloc in favor of the below
+                    # diffs[_composite_key][f"{k}_A"] = None  # TODO:  Drop this bloc in favor of the below
+                    # diffs[_composite_key][f"{k}_B"] = record_b_value  # TODO:  Drop this bloc in favor of the below
+                    # diffs[_composite_key][f"{k}_LEVENSHTEIN_DISTANCE"] = len(record_b_value)  # TODO:  Drop this bloc in favor of the below
+
+                    diffs[_composite_key][k] = dict(__diff_type='Row In B but not in A',
+                                                    A=None,
+                                                    B=record_b_value,
+                                                    __levenshtein_distance=len(record_b_value))
                 else:
                     # We should never get here
                     raise ValueError(f"Unexpected state!  row_key_exists_in_a=[{row_key_exists_in_a}] "
                                      f"row_key_exists_in_b=[{row_key_exists_in_b}]")
+
         elif composite_key_exists_in_a is True and composite_key_exists_in_b is False:
 
             """
@@ -281,7 +286,8 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                 if k not in diffs[_composite_key].keys():
                     diffs[_composite_key][k] = {}
 
-                diffs[_composite_key][k]['A'] = {record_a[k]}
+                diffs[_composite_key][k]['__diff_type'] = 'In A but not in B'
+                diffs[_composite_key][k]['A'] = record_a[k]
                 diffs[_composite_key][k]['B'] = None
                 diffs[_composite_key][k]['__levenshtein_distance'] = len(str(record_a[k]))
 
@@ -314,8 +320,9 @@ def _make_comparison(list_of_dicts_a:list, list_of_dicts_b:list, unimportant_fie
                 if k not in diffs[_composite_key].keys():
                     diffs[_composite_key][k] = {}
 
+                diffs[_composite_key][k]['__diff_type'] = 'In B but not in A'
                 diffs[_composite_key][k]['A'] = None
-                diffs[_composite_key][k]['B'] = {record_b[k]}
+                diffs[_composite_key][k]['B'] = record_b[k]
                 diffs[_composite_key][k]['__levenshtein_distance'] = len(str(record_b[k]))
 
         else:
